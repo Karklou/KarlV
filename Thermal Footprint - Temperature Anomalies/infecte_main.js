@@ -189,7 +189,7 @@ async function loadThermalData() {
     if (progressEl) progressEl.textContent = 'Acquiring thermal records...';
 
     // Binary — avec progression
-    const binResp   = await fetch('thermal_anomalies.bin');
+    const binResp   = await fetch('https://github.com/Karklou/KarlV/releases/download/v1.0/thermal_anomalies.bin');
     const reader    = binResp.body.getReader();
     const totalSize = thermalMetadata.total_bytes;
     let received    = 0;
