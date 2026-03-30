@@ -188,33 +188,28 @@ async function loadThermalData() {
 
     if (progressEl) progressEl.textContent = 'Acquiring thermal records...';
 
-    // Binary — avec progression
-    const binResp   = await fetch('https://github.com/Karklou/KarlV/releases/download/v1.0/thermal_anomalies.bin');
-    const reader    = binResp.body.getReader();
-    const totalSize = thermalMetadata.total_bytes;
-    let received    = 0;
-    const chunks    = [];
-    const barFill   = document.getElementById('loading-bar-fill');
+    // Binary — split into chunks for GitHub hosting (100MB limit per file)
+    const chunkFiles = ['thermal_chunk_aa', 'thermal_chunk_ab', 'thermal_chunk_ac'];
+    const totalSize  = thermalMetadata.total_bytes;
+    let received     = 0;
+    const allBytes   = new Uint8Array(totalSize);
+    const barFill    = document.getElementById('loading-bar-fill');
 
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      received += value.length;
-      const pct = Math.round(received / totalSize * 100);
-      if (progressEl) {
-        progressEl.textContent = `Spread: ${pct}%`;
+    for (let i = 0; i < chunkFiles.length; i++) {
+      const resp   = await fetch(chunkFiles[i]);
+      const reader = resp.body.getReader();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        allBytes.set(value, received);
+        received += value.length;
+        const pct = Math.round(received / totalSize * 100);
+        if (progressEl) progressEl.textContent = `Spread: ${pct}%`;
+        if (barFill) barFill.style.width = pct + '%';
       }
-      if (barFill) barFill.style.width = pct + '%';
     }
 
-    // Assemblage
-    const allBytes = new Uint8Array(received);
-    let offset = 0;
-    for (const chunk of chunks) {
-      allBytes.set(chunk, offset);
-      offset += chunk.length;
-    }
     thermalData = new Float32Array(allBytes.buffer);
 
     console.log(`[Infected Globe] Donnees thermiques chargees : ${totalMonths} mois, ${thermalData.length} floats`);
