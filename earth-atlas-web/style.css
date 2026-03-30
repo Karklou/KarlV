@@ -1,0 +1,451 @@
+body, html {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #020202; /* Abyssal Black */
+    overflow: hidden;
+    font-family: 'Roboto Mono', monospace; /* Monospace */
+    color: #e0e0e0;
+}
+
+#canvas-container {
+    width: 100vw;
+    height: 100vh;
+    display: block;
+}
+
+/* ─── Sources Attribution ─── */
+#sources {
+    position: fixed;
+    bottom: 24px;
+    right: 28px;
+    text-align: right;
+    opacity: 0.30;
+    transition: opacity 0.5s ease;
+    pointer-events: auto;
+    z-index: 10;
+}
+
+#sources:hover {
+    opacity: 0.70;
+}
+
+.sources-label {
+    font-size: 9px;
+    font-weight: 300;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 8px;
+}
+
+.sources-item {
+    font-size: 11px;
+    font-weight: 300;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.50);
+}
+
+.sources-item a {
+    color: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    transition: border-color 0.3s ease, color 0.3s ease;
+}
+
+.sources-item a:hover {
+    color: rgba(255, 255, 255, 0.90);
+    border-bottom-color: rgba(255, 255, 255, 0.40);
+}
+
+.sources-tag {
+    display: inline-block;
+    font-size: 8px;
+    font-weight: 400;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.30);
+    margin-right: 6px;
+}
+
+/* ─── Tooltip Styling ─── */
+#conflict-tooltip {
+    position: absolute;
+    pointer-events: none;
+    z-index: 100;
+    background-color: #000000;
+    border: 1px solid #ff3333; /* Harsh red border */
+    padding: 12px 16px;
+    min-width: 150px;
+    max-width: 280px;
+    box-shadow: 4px 4px 0px rgba(255, 0, 0, 0.2);
+    color: white;
+    font-family: 'Roboto Mono', monospace;
+    transform: translate(15px, 15px);
+    display: none; /* Removed transitions for brutal pop-in */
+}
+
+#conflict-tooltip.visible {
+    display: block;
+}
+
+#conflict-tooltip h3 {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #ff1a1a;
+    border-bottom: 1px dashed #550000;
+    padding-bottom: 6px;
+}
+
+#conflict-tooltip.high-intensity {
+    border-color: #ff0000;
+    background-color: rgba(20, 0, 0, 0.95);
+    box-shadow: 0px 0px 10px rgba(255, 0, 0, 0.5);
+}
+
+#conflict-tooltip.high-intensity h3 {
+    color: #ff1a1a;
+    text-shadow: none; /* Remove glow, keep it solid */
+}
+
+#conflict-tooltip .meta-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    margin-bottom: 6px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#conflict-tooltip .meta-label {
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0px;
+    color: #888;
+}
+
+.meta-value.fatalities-value {
+    color: #ff1a1a;
+    font-weight: bold;
+}
+
+#conflict-tooltip .actors {
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 1.4;
+    padding-top: 6px;
+    border-top: 1px solid #333;
+    color: #aaa;
+}
+
+/* ─── Color Legend Styling ─── */
+#color-legend {
+    position: fixed;
+    top: 24px;
+    left: 28px;
+    background: #000;
+    border: 1px solid #333;
+    padding: 14px 18px;
+    z-index: 10;
+    pointer-events: none; /* Let clicks pass through to the globe */
+}
+
+.legend-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #ff1a1a;
+    margin-bottom: 10px;
+    border-bottom: 1px dashed #550000;
+    padding-bottom: 6px;
+}
+
+.legend-item {
+    font-size: 11px;
+    color: #bbb;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+}
+
+.legend-item:last-child {
+    margin-bottom: 0;
+}
+
+@keyframes glitch-flash {
+    0% { opacity: 0.2; }
+    20% { opacity: 1; }
+    40% { opacity: 0.1; }
+    60% { opacity: 0.9; }
+    80% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+
+.color-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 12px;
+    border: 1px solid currentColor;
+    background-color: transparent; /* Hollow retro terminal look */
+    animation: glitch-flash 4s infinite step-end;
+}
+
+/* ─── Top Right Controls ─── */
+.top-right-control {
+    position: fixed;
+    right: 28px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: #8899aa;
+    cursor: pointer;
+    z-index: 10;
+    border: 1px solid #333;
+    padding: 8px 12px;
+    background: rgba(0, 0, 0, 0.6);
+    transition: all 0.2s ease;
+}
+
+.top-right-control:hover {
+    color: #ff1a1a;
+    border-color: #ff1a1a;
+    background: rgba(255, 26, 26, 0.1);
+}
+
+#about-trigger {
+    top: 24px;
+}
+
+#auto-rotate-btn {
+    top: 64px;
+}
+
+#auto-rotate-btn.active {
+    color: #00ea90;
+    border-color: #00ea90;
+}
+
+#auto-rotate-btn.active:hover {
+    background: rgba(0, 234, 144, 0.1);
+}
+
+/* ─── Modal Overlay ─── */
+#about-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(2, 2, 2, 0.40);
+    backdrop-filter: blur(0.4px);
+    -webkit-backdrop-filter: blur(0.4px);
+    z-index: 100;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+#about-modal.modal-active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ─── Modal Content ─── */
+.modal-content {
+    width: 90%;
+    max-width: 650px;
+    background: #050505;
+    border: 1px solid #333;
+    box-shadow: 0 0 30px rgba(255, 26, 26, 0.05);
+    padding: 30px;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    color: #e0e0e0;
+}
+
+#close-modal-x {
+    background: none;
+    border: none;
+    color: #888;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+#close-modal-x:hover {
+    color: #ff1a1a;
+}
+
+.modal-section {
+    margin-bottom: 25px;
+}
+
+.section-label {
+    font-size: 10px;
+    color: #ff1a1a;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.modal-body p {
+    font-size: 12px;
+    line-height: 1.6;
+    color: #aaa;
+    margin: 0;
+    text-align: justify;
+}
+
+.disclaimer {
+    border-left: 2px solid #ff1a1a;
+    padding-left: 15px;
+    background: rgba(255, 26, 26, 0.03);
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+
+.modal-footer {
+    margin-top: 30px;
+    text-align: right;
+    border-top: 1px solid #333;
+    padding-top: 20px;
+}
+
+#accept-modal {
+    background: transparent;
+    border: 1px solid #ff1a1a;
+    color: #ff1a1a;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#accept-modal:hover {
+    background: #ff1a1a;
+    color: #000;
+}
+
+/* ─── Mobile Responsiveness ─── */
+@media (max-width: 768px) {
+    .top-right-control {
+        right: 15px;
+        font-size: 9px;
+        padding: 6px 10px;
+        letter-spacing: 1px;
+    }
+    
+    #about-trigger {
+        top: 15px;
+    }
+    
+    #auto-rotate-btn {
+        top: 45px;
+    }
+
+    #color-legend {
+        top: 15px;
+        left: 15px;
+        padding: 8px 10px;
+        max-width: 140px; /* Reduced footprint */
+        background: rgba(0, 0, 0, 0.85); /* Slightly more opaque background */
+    }
+
+    .legend-title {
+        font-size: 9px;
+        margin-bottom: 6px;
+        letter-spacing: 0px;
+    }
+
+    .legend-item {
+        font-size: 8px;
+        margin-bottom: 4px;
+        line-height: 1.2;
+    }
+    
+    .color-dot {
+        width: 6px;
+        height: 6px;
+        margin-right: 6px;
+        animation: glitch-flash 4s infinite step-end;
+    }
+
+    #sources {
+        bottom: 15px;
+        right: 15px;
+    }
+
+    .sources-label {
+        font-size: 8px;
+        margin-bottom: 4px;
+    }
+
+    .sources-item {
+        font-size: 9px;
+    }
+
+    .modal-content {
+        padding: 20px 15px;
+        width: 85%;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+
+    .modal-header {
+        margin-bottom: 15px;
+    }
+
+    .modal-header h2 {
+        font-size: 13px;
+        letter-spacing: 1px;
+    }
+
+    .modal-section {
+        margin-bottom: 15px;
+    }
+
+    .modal-body p {
+        font-size: 10px;
+    }
+
+    #accept-modal {
+        font-size: 10px;
+        padding: 8px 12px;
+    }
+
+    #conflict-tooltip {
+        max-width: 200px;
+        min-width: 120px;
+        font-size: 10px;
+        padding: 8px 10px;
+    }
+
+    #conflict-tooltip h3 {
+        font-size: 11px;
+    }
+}

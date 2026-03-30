@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Karl — Data Storytelling</title>
+  <meta name="description" content="Data storytelling & visual analysis. Translating raw data into visceral, cognitively immediate experiences.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* ─── RESET & BASE ─────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg:        #020202;
+      --bg-card:   #0a0a0a;
+      --border:    rgba(255,255,255,0.07);
+      --text-dim:  rgba(255,255,255,0.18);
+      --text-mid:  rgba(255,255,255,0.45);
+      --text-main: rgba(255,255,255,0.82);
+      --text-full: rgba(255,255,255,0.95);
+      --mono:      'Roboto Mono', 'SF Mono', 'Fira Code', monospace;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--text-main);
+      font-family: var(--mono);
+      font-size: 13px;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── LAYOUT ──────────────────────────────────────── */
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 40px;
+    }
+
+    section { padding: 80px 0; }
+
+    /* ─── HEADER ──────────────────────────────────────── */
+    header {
+      padding: 48px 40px 0;
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .header-left .system-tag {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 16px;
+    }
+
+    .header-left h1 {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: var(--text-full);
+    }
+
+    .header-left .tagline {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-mid);
+      margin-top: 8px;
+    }
+
+    .header-right {
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      padding-top: 4px;
+    }
+
+    .header-right a {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .header-right a:hover { color: var(--text-main); }
+
+    /* ─── DIVIDER ─────────────────────────────────────── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+      margin-top: 40px;
+    }
+
+    /* ─── HERO ────────────────────────────────────────── */
+    .hero {
+      padding: 72px 0 48px;
+    }
+
+    .hero .label {
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 24px;
+    }
+
+    .hero p {
+      font-size: 14px;
+      line-height: 1.9;
+      color: var(--text-mid);
+      max-width: 600px;
+    }
+
+    .hero p strong {
+      color: var(--text-main);
+      font-weight: 400;
+    }
+
+    /* ─── SECTION LABEL ───────────────────────────────── */
+    .section-label {
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ─── PROJECTS GRID ───────────────────────────────── */
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+      gap: 2px;
+    }
+
+    /* ════════════════════════════════════════════════════
+       PROJECT CARD
+       To add a new project, copy one .project-card block
+       and update: data-accent color, preview class, title,
+       tags, description, and the href on the CTA button.
+    ════════════════════════════════════════════════════ */
+    .project-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      padding: 36px 36px 32px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .project-card:hover {
+      border-color: rgba(255,255,255,0.14);
+    }
+
+    /* Colored top accent bar — change color per project */
+    .project-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: var(--accent);
+      opacity: 0.6;
+      transition: opacity 0.3s;
+    }
+
+    .project-card:hover::before { opacity: 1; }
+
+    /* ─── VISUAL PREVIEW ──────────────────────────────── */
+    .project-preview {
+      width: 100%;
+      height: 180px;
+      border: 1px solid var(--border);
+      overflow: hidden;
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    /* Animated particle/noise background per project theme */
+    .project-preview canvas-placeholder {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .preview-conflict {
+      background:
+        radial-gradient(ellipse at 30% 60%, rgba(180,0,0,0.18) 0%, transparent 55%),
+        radial-gradient(ellipse at 70% 30%, rgba(255,30,30,0.10) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 50%, rgba(40,0,0,0.6) 0%, transparent 80%),
+        #030303;
+      animation: pulse-red 4s ease-in-out infinite;
+    }
+
+    .preview-thermal {
+      background:
+        radial-gradient(ellipse at 40% 50%, rgba(255,120,20,0.20) 0%, transparent 55%),
+        radial-gradient(ellipse at 65% 35%, rgba(255,60,0,0.12) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 50%, rgba(20,10,0,0.7) 0%, transparent 80%),
+        #030303;
+      animation: pulse-orange 5s ease-in-out infinite;
+    }
+
+    @keyframes pulse-red {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.75; }
+    }
+    @keyframes pulse-orange {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.80; }
+    }
+
+    .preview-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .preview-title-small {
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.25);
+    }
+
+    .preview-icon {
+      font-size: 28px;
+      opacity: 0.35;
+    }
+
+    /* ─── CARD CONTENT ────────────────────────────────── */
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-index {
+      font-size: 9px;
+      letter-spacing: 0.2em;
+      color: var(--text-dim);
+    }
+
+    .card-tags {
+      display: flex;
+      gap: 8px;
+    }
+
+    .tag {
+      font-size: 8px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+    }
+
+    .card-body h2 {
+      font-size: 16px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      color: var(--text-full);
+      margin-bottom: 10px;
+    }
+
+    .card-body p {
+      font-size: 11px;
+      line-height: 1.8;
+      color: var(--text-mid);
+    }
+
+    /* ─── CTA BUTTON ──────────────────────────────────── */
+    .card-cta {
+      margin-top: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .card-cta a {
+      font-size: 9px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--text-mid);
+      text-decoration: none;
+      border: 1px solid rgba(255,255,255,0.12);
+      padding: 10px 20px;
+      transition: color 0.2s, border-color 0.2s;
+      display: inline-block;
+    }
+
+    .card-cta a:hover {
+      color: var(--text-full);
+      border-color: rgba(255,255,255,0.35);
+    }
+
+    .card-cta .stack {
+      font-size: 8px;
+      letter-spacing: 0.12em;
+      color: var(--text-dim);
+    }
+
+    /* ─── ABOUT SECTION ───────────────────────────────── */
+    .about-content {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: start;
+    }
+
+    .about-text p {
+      font-size: 12px;
+      line-height: 1.9;
+      color: var(--text-mid);
+      margin-bottom: 16px;
+    }
+
+    .about-text p strong {
+      color: var(--text-main);
+      font-weight: 400;
+    }
+
+    .about-specs {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .spec-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 16px;
+      align-items: baseline;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .spec-row:last-child { border-bottom: none; }
+
+    .spec-key {
+      font-size: 8px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+    }
+
+    .spec-val {
+      font-size: 11px;
+      color: var(--text-mid);
+      letter-spacing: 0.04em;
+    }
+
+    /* ─── FOOTER ──────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 32px 40px;
+      max-width: 1080px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .footer-left {
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      color: var(--text-dim);
+    }
+
+    .footer-right {
+      display: flex;
+      gap: 28px;
+    }
+
+    .footer-right a {
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-right a:hover { color: var(--text-main); }
+
+    /* ─── RESPONSIVE ──────────────────────────────────── */
+    @media (max-width: 720px) {
+      header {
+        flex-direction: column;
+        gap: 24px;
+        padding: 32px 24px 0;
+      }
+
+      .container { padding: 0 24px; }
+      footer { flex-direction: column; gap: 20px; padding: 32px 24px; }
+
+      .projects-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .about-content {
+        grid-template-columns: 1fr;
+        gap: 40px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ─── HEADER ─────────────────────────────────────── -->
+  <header>
+    <div class="header-left">
+      <div class="system-tag">Portfolio // Data Storytelling</div>
+      <h1>Karl</h1>
+      <div class="tagline">Data Analyst &amp; Visual Strategist</div>
+    </div>
+    <nav class="header-right">
+      <a href="#projects">Projects</a>
+      <a href="#about">About</a>
+      <a href="mailto:karl97100@gmail.com">Contact</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <div class="divider"></div>
+
+    <!-- ─── HERO ───────────────────────────────────────── -->
+    <div class="hero">
+      <div class="label">Objective // Approach</div>
+      <p>
+        Data is never neutral. Every dataset contains a <strong>narrative structure</strong> —
+        a tension, a rupture, a pattern that resists reduction to numbers alone.
+        My work translates raw data into <strong>visceral, cognitively immediate experiences</strong>
+        that bypass sanitized dashboards and force direct engagement with the underlying reality.
+      </p>
+    </div>
+
+  </div>
+
+  <!-- ─── PROJECTS ────────────────────────────────────── -->
+  <section id="projects">
+    <div class="container">
+      <div class="section-label">Projects // Data Visualizations</div>
+
+      <div class="projects-grid">
+
+        <!-- ════════════════════════════════════════════════
+             PROJECT 01 — EARTH CONFLICT ATLAS
+             ════════════════════════════════════════════════ -->
+        <div class="project-card" style="--accent: #cc2200;">
+          <div class="project-preview preview-conflict">
+            <div class="preview-overlay">
+              <div class="preview-icon">◉</div>
+              <div class="preview-title-small">3D Interactive Globe</div>
+            </div>
+          </div>
+          <div class="card-meta">
+            <span class="card-index">PROJECT_01</span>
+            <div class="card-tags">
+              <span class="tag">Data-Art</span>
+              <span class="tag">3D</span>
+              <span class="tag">Geopolitics</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <h2>Earth Conflict Atlas</h2>
+            <p>
+              A 3D globe rendered from 200,000 particles where armed conflicts act as pathogens —
+              corrupting, irradiating and mutating the tissue of the Earth.
+              Geopolitical data from ACLED translated into visual arrhythmia and saturation.
+              The goal: make global violence impossible to abstract away.
+            </p>
+          </div>
+          <div class="card-cta">
+            <a href="earth-atlas-web/index.html" target="_blank">Explore →</a>
+            <span class="stack">Three.js &nbsp;/&nbsp; WebGL &nbsp;/&nbsp; GLSL</span>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════
+             PROJECT 02 — THERMAL FOOTPRINT
+             ════════════════════════════════════════════════ -->
+        <div class="project-card" style="--accent: #cc5500;">
+          <div class="project-preview preview-thermal">
+            <div class="preview-overlay">
+              <div class="preview-icon">◎</div>
+              <div class="preview-title-small">Animated Time Series</div>
+            </div>
+          </div>
+          <div class="card-meta">
+            <span class="card-index">PROJECT_02</span>
+            <div class="card-tags">
+              <span class="tag">Climate</span>
+              <span class="tag">Time Series</span>
+              <span class="tag">GLSL Shader</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <h2>Thermal Footprint</h2>
+            <p>
+              140 years of global temperature anomalies rendered on a living globe.
+              NASA GISS surface temperature data (GISTEMP) projected through custom GLSL shaders
+              that map heat deviation directly onto the planet's skin —
+              from the industrial revolution to the present.
+            </p>
+          </div>
+          <div class="card-cta">
+            <a href="Thermal Footprint - Temperature Anomalies/infecte.html" target="_blank">Explore →</a>
+            <span class="stack">Three.js &nbsp;/&nbsp; GLSL &nbsp;/&nbsp; NASA GISS</span>
+          </div>
+        </div>
+
+        <!-- ════════════════════════════════════════════════
+             ADD A NEW PROJECT HERE
+             Copy the block above (PROJECT 0X), then:
+             1. Change --accent color (hex)
+             2. Change preview class (preview-conflict / preview-thermal / or add your own)
+             3. Update PROJECT_0X index
+             4. Update tags, title, description
+             5. Update href to your project's folder/file
+             6. Update stack technologies
+             ════════════════════════════════════════════════ -->
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── ABOUT ────────────────────────────────────────── -->
+  <section id="about">
+    <div class="container">
+      <div class="section-label">About // System Profile</div>
+      <div class="about-content">
+        <div class="about-text">
+          <p>
+            I'm an <strong>analyst and creative strategist</strong> in transition toward
+            data-driven roles at the intersection of business analysis, visual design,
+            and strategic storytelling.
+          </p>
+          <p>
+            My approach rejects the safety of standard dashboards.
+            Each project starts from a question: <strong>what does the data feel like
+            when you remove the distance?</strong> The technical stack is a means —
+            not the point. The point is cognitive friction that produces insight.
+          </p>
+          <p>
+            Background in <strong>music, creative entrepreneurship, and management studies</strong>.
+            Currently building analytical systems (Mosaic, Crescendo)
+            that apply the same visual rigor to business intelligence.
+          </p>
+        </div>
+        <div class="about-specs">
+          <div class="spec-row">
+            <span class="spec-key">Focus</span>
+            <span class="spec-val">Data storytelling, Visual analytics, Strategic analysis</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Stack</span>
+            <span class="spec-val">JavaScript, Three.js, WebGL, GLSL, Python, D3.js</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Domain</span>
+            <span class="spec-val">Geopolitics, Climate, Business intelligence</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Approach</span>
+            <span class="spec-val">Translate data into unavoidable cognitive experiences</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">GitHub</span>
+            <span class="spec-val">
+              <a href="https://github.com/Karklou" target="_blank"
+                 style="color: var(--text-mid); text-decoration: none; border-bottom: 1px solid var(--border);">
+                github.com/Karklou
+              </a>
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ───────────────────────────────────────── -->
+  <footer>
+    <div class="footer-left">Karl &nbsp;// &nbsp;Data Storytelling Portfolio &nbsp;// &nbsp;2025</div>
+    <div class="footer-right">
+      <a href="https://github.com/Karklou" target="_blank">GitHub</a>
+      <a href="mailto:karl97100@gmail.com">Email</a>
+    </div>
+  </footer>
+
+</body>
+</html>

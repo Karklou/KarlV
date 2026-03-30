@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>The Infected Globe</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; overflow: hidden; cursor: grab; }
+    body:active { cursor: grabbing; }
+    canvas { display: block; touch-action: none; }
+
+    /* ─── Loading overlay ──────────────────────────────── */
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      z-index: 100;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      color: rgba(255,255,255,0.25);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    #loading-title {
+      font-size: 14px;
+      color: rgba(255,255,255,0.5);
+      letter-spacing: 0.25em;
+      margin-bottom: 18px;
+    }
+    #loading-subtitle {
+      color: rgba(255,255,255,0.18);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      margin-bottom: 24px;
+      max-width: 380px;
+      text-align: center;
+      line-height: 1.6;
+    }
+    #loading-progress {
+      margin-top: 0;
+      color: rgba(255,255,255,0.35);
+      font-size: 10px;
+    }
+    #loading-bar {
+      width: 200px;
+      height: 1px;
+      background: rgba(255,255,255,0.08);
+      margin-top: 14px;
+      overflow: hidden;
+    }
+    #loading-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: rgba(255,255,255,0.3);
+      transition: width 0.3s ease;
+    }
+
+    /* ─── Time controls ────────────────────────────────── */
+    #controls {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none; /* shown after data loads */
+      align-items: center;
+      gap: 14px;
+      z-index: 10;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    }
+
+    #play-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #aaa;
+      font-size: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    #play-btn:hover {
+      border-color: rgba(255,255,255,0.4);
+      color: #fff;
+    }
+
+    #time-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: min(500px, 60vw);
+      height: 3px;
+      background: rgba(255,255,255,0.12);
+      border-radius: 2px;
+      outline: none;
+      cursor: pointer;
+    }
+    #time-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ccc;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #time-slider::-webkit-slider-thumb:hover {
+      background: #fff;
+    }
+    #time-slider::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #ccc;
+      cursor: pointer;
+      border: none;
+    }
+
+    /* ─── Date HUD ─────────────────────────────────────── */
+    #date-display {
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      color: rgba(255,255,255,0.7);
+      font-size: 14px;
+      letter-spacing: 0.08em;
+      min-width: 80px;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* ─── Anomalie HUD (coin superieur droit) ──────────── */
+    #anomaly-label {
+      position: fixed;
+      top: 24px;
+      right: 28px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.22);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      user-select: none;
+      z-index: 10;
+      text-align: right;
+      line-height: 1.6;
+      max-width: 360px;
+      opacity: 0;
+      transition: opacity 1.5s ease 0.5s;
+    }
+
+    /* ─── Titre discret ────────────────────────────────── */
+    #title {
+      position: fixed;
+      top: 24px;
+      left: 28px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      user-select: none;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 1.5s ease 0.5s;
+    }
+    #title-main {
+      font-size: 11px;
+      color: rgba(255,255,255,0.30);
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+    }
+    #title-sub {
+      font-size: 9px;
+      color: rgba(255,255,255,0.15);
+      letter-spacing: 0.08em;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    /* ─── Modale d'introduction ───────────────────────── */
+    #intro-modal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.75);
+      z-index: 90;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      animation: fadeIn 1.2s ease;
+    }
+    #intro-modal.visible { display: flex; }
+
+    #intro-content {
+      max-width: 520px;
+      padding: 0 32px;
+      text-align: center;
+    }
+    #intro-content p {
+      color: rgba(255,255,255,0.50);
+      font-size: 12px;
+      line-height: 1.9;
+      letter-spacing: 0.03em;
+      margin-bottom: 16px;
+    }
+    #intro-content p.intro-accent {
+      color: rgba(255,255,255,0.70);
+      font-size: 13px;
+    }
+    #intro-content p.intro-cta {
+      color: rgba(255,255,255,0.30);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 32px;
+      cursor: pointer;
+      transition: color 0.3s;
+    }
+    #intro-content p.intro-cta:hover {
+      color: rgba(255,255,255,0.6);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    /* ─── Clinical Legend ──────────────────────────────── */
+    #clinical-legend {
+      position: fixed;
+      top: 80px;
+      right: 28px;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 1.5s ease 0.8s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: flex-end;
+      user-select: none;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 9px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .legend-color {
+      width: 12px;
+      height: 2px;
+      border-radius: 1px;
+    }
+    .color-fever     { background: #d96105; box-shadow: 0 0 4px #d96105; }
+    .color-infection { background: #b30d03; box-shadow: 0 0 4px #b30d03; }
+    .color-necrosis  { background: #000000; border: 1px solid #4a0905; box-shadow: 0 0 6px #4a0905; }
+
+    /* ─── Jalon technologique (sous le slider) ─────────── */
+    #milestone {
+      position: fixed;
+      bottom: 68px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 9px;
+      color: rgba(255,255,255,0.20);
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      text-align: center;
+      user-select: none;
+      z-index: 10;
+      transition: opacity 0.6s ease;
+      white-space: nowrap;
+    }
+
+    /* ─── Mobile ────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      /* Titre + anomaly label — plus petits, ne pas encombrer */
+      #title-main { font-size: 9px; letter-spacing: 0.12em; }
+      #title-sub  { display: none; }
+      #anomaly-label { font-size: 8px; top: 16px; right: 16px; }
+
+      /* Légende clinique — plus proche du bord */
+      #clinical-legend { top: 60px; right: 16px; gap: 6px; }
+      .legend-item { font-size: 8px; gap: 7px; }
+
+      /* Jalon technologique — ramène plus haut */
+      #milestone { bottom: 76px; font-size: 8px; white-space: normal; max-width: 80vw; text-align: center; }
+
+      /* Contrôles — barre plus haute, bouton plus large pour les doigts */
+      #controls { bottom: 20px; gap: 10px; }
+
+      #play-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 18px;
+      }
+
+      #time-slider {
+        width: min(280px, 55vw);
+        height: 6px;        /* piste plus épaisse — plus facile à toucher */
+      }
+      #time-slider::-webkit-slider-thumb {
+        width: 22px;
+        height: 22px;
+      }
+      #time-slider::-moz-range-thumb {
+        width: 22px;
+        height: 22px;
+      }
+
+      #date-display { font-size: 12px; }
+
+      /* Modale intro — padding réduit, lisible sur petit écran */
+      #intro-content { padding: 0 20px; }
+      #intro-content p { font-size: 11px; line-height: 1.7; }
+      #intro-content p.intro-accent { font-size: 12px; }
+      #intro-content p.intro-cta { font-size: 9px; margin-top: 24px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div id="loading-title">Diagnosis: The Infected Globe</div>
+    <div id="loading-subtitle">146 years of clinical data.<br>Analyzing the spread&hellip;</div>
+    <div id="loading-progress">Initializing&hellip;</div>
+    <div id="loading-bar"><div id="loading-bar-fill"></div></div>
+  </div>
+
+  <!-- Introduction modal -->
+  <div id="intro-modal">
+    <div id="intro-content">
+      <p class="intro-accent">We have never been more technologically advanced.</p>
+      <p>Over the last century, we split the atom, connected the planet, walked on the Moon and created artificial intelligence.</p>
+      <p class="intro-accent">Yet, the patient is burning.</p>
+      <p>None of our progress has stopped the spread. Observe technological acceleration against the systemic failure to heal our host.</p>
+      <p class="intro-cta" id="intro-close">Start diagnosis (1880 &mdash; 2026)</p>
+    </div>
+  </div>
+
+  <!-- HUD -->
+  <div id="title">
+    <div id="title-main">The Infected Globe</div>
+    <div id="title-sub">The illusion of progress.</div>
+  </div>
+  <div id="anomaly-label">Planetary fever<br>vs. Technological acceleration<br>1880 &mdash; 2026</div>
+
+  <!-- Clinical legend -->
+  <div id="clinical-legend">
+    <div class="legend-item">
+      <span>Phase 1: Fever</span>
+      <div class="legend-color color-fever"></div>
+    </div>
+    <div class="legend-item">
+      <span>Phase 2: Infection</span>
+      <div class="legend-color color-infection"></div>
+    </div>
+    <div class="legend-item">
+      <span>Phase 3: Necrosis</span>
+      <div class="legend-color color-necrosis"></div>
+    </div>
+  </div>
+
+  <!-- Technological milestone -->
+  <div id="milestone"></div>
+
+  <!-- Time controls -->
+  <div id="controls">
+    <button id="play-btn">&#9654;</button>
+    <input type="range" id="time-slider" min="0" max="1" value="0" step="1">
+    <div id="date-display">---</div>
+  </div>
+
+  <!-- Three.js r128 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script type="module" src="infecte_main.js"></script>
+
+</body>
+</html>

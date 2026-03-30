@@ -1,0 +1,36 @@
+{
+  "description": "NASA GISTEMP v4 — anomalies de température (°C vs 1951-1980)",
+  "source_file": "gistemp1200_GHCNv4_ERSSTv5.nc",
+  "dimensions": {
+    "width": 180,
+    "height": 90,
+    "depth": 1754
+  },
+  "axes": {
+    "width": "longitude",
+    "height": "latitude",
+    "depth": "time (mois)"
+  },
+  "time_range": {
+    "first": "1880-01-15",
+    "last": "2026-02-15",
+    "total_months": 1754
+  },
+  "lat_range": [
+    -89.0,
+    89.0
+  ],
+  "lon_range": [
+    -179.0,
+    179.0
+  ],
+  "anomaly_stats": {
+    "min": -999.0,
+    "max": 15.949999809265137,
+    "mean": -108.8892
+  },
+  "encoding": "Float32Array",
+  "byte_order": "little-endian",
+  "total_floats": 28414800,
+  "total_bytes": 113659200
+}

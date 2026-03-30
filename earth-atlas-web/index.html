@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earth Conflict Atlas</title>
+    <meta name="description"
+        content="Interactive 3D globe visualizing global conflict data from ACLED. Data-art visualization of geopolitical tensions.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Three.js Library & Dependencies -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+
+<body>
+    <div id="about-trigger" class="top-right-control">SYS_INFO // CONTEXT</div>
+    <div id="auto-rotate-btn" class="top-right-control active">AUTO ROTATE: ON</div>
+
+    <div id="about-modal" class="modal-active">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>EARTH CONFLICT ATLAS</h2>
+                <button id="close-modal-x">[X]</button>
+            </div>
+
+            <div class="modal-body">
+                <div class="modal-section">
+                    <div class="section-label">EXPLORATION // DATA-ART</div>
+                    <p>This laboratory focuses on visceral data translation. The objective is to obsolete traditional,
+                        sanitized analytical dashboards. We replace them with organic frameworks that force immediate
+                        cognitive engagement through sensory friction and physical tension.</p>
+                </div>
+
+                <div class="modal-section">
+                    <div class="section-label">VISUAL DIAGNOSTIC</div>
+                    <p>This interface does not display borders; it observes a diseased organism. The Earth is modeled
+                        through a cellular tissue of 200,000 particles. Armed conflicts, civilian violence, and kinetic
+                        strikes act as pathogens. They corrupt, irradiate, and mutate the local structure. The visual
+                        arrhythmia and saturation are intentional: they translate the chaotic, urgent nature of global
+                        violence.</p>
+                </div>
+
+                <div class="modal-section disclaimer">
+                    <div class="section-label">SYSTEM WARNING</div>
+                    <p>The geospatial anomalies observed rely on real data extracted from ACLED (Armed Conflict Location
+                        & Event Data) as of 2026-02-28. The Python algorithm aggregates event density and the volume of
+                        human fatalities to calculate a degeneration index. This is a macroscopic and aesthetic
+                        interpretation of war and violence. It is not a real-time tactical intelligence tool.</p>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="accept-modal">INITIALIZE OBSERVATION</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="canvas-container"></div>
+    <div id="conflict-tooltip" class="hidden"></div>
+
+    <div id="color-legend">
+        <div class="legend-title">ANOMALY CLASSIFICATION</div>
+        <div class="legend-item"><span class="color-dot" style="background-color: #ff1a1a;"></span> KINETIC
+            CONFRONTATION</div>
+        <div class="legend-item"><span class="color-dot" style="background-color: #d9e619;"></span> REMOTE STRIKES</div>
+        <div class="legend-item"><span class="color-dot" style="background-color: #9900cc;"></span> CIVILIAN
+            OBLITERATION</div>
+        <div class="legend-item"><span class="color-dot" style="background-color: #ff6600;"></span> LOCAL DEGENERATION
+        </div>
+        <div class="legend-item"><span class="color-dot" style="background-color: #8899aa;"></span> HISTORICAL SCLEROSIS
+        </div>
+    </div>
+
+    <div id="sources">
+        <div class="sources-label">Sources</div>
+        <div class="sources-item">
+            <span class="sources-tag">Data</span>
+            <a href="https://acleddata.com" target="_blank" rel="noopener">ACLED</a> — Armed Conflict Location &amp;
+            Event Data
+        </div>
+        <div class="sources-item">
+            <span class="sources-tag">Map</span>
+            <a href="https://visibleearth.nasa.gov" target="_blank" rel="noopener">NASA</a> Visible Earth
+        </div>
+    </div>
+
+    <!-- Include Custom Shaders and Main Logic -->
+    <script src="shaders.js"></script>
+    <script src="main.js"></script>
+</body>
+
+</html>

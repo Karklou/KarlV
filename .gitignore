@@ -1,0 +1,22 @@
+# Mac system files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Claude settings
+.claude/
+**/.claude/
+
+# Large raw data files
+*.nc
+*.nc4
+
+# Large binary data (hosted externally via GitHub Releases)
+thermal_anomalies.bin
+
+# Reference/template projects (source material, not portfolio content)
+Thermal Footprint - Temperature Anomalies/realtime-planet-shader-main/
+
+# Python cache
+__pycache__/
+*.pyc

@@ -1,0 +1,7 @@
+# Fichiers d'environnement et secrets
+.env
+
+# Dossiers systèmes et Python
+__pycache__/
+*.pyc
+.DS_Store
