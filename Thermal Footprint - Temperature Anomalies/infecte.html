@@ -238,7 +238,7 @@
       transition: opacity 1.5s ease 0.8s;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 10px;
       align-items: flex-end;
       user-select: none;
     }
@@ -251,14 +251,125 @@
       letter-spacing: 0.1em;
       text-transform: uppercase;
     }
+    .legend-label {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+    }
+    .legend-phase {
+      font-size: 9px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .legend-temp {
+      font-size: 8px;
+      color: rgba(255,255,255,0.20);
+      letter-spacing: 0.06em;
+      font-style: normal;
+    }
     .legend-color {
       width: 12px;
       height: 2px;
       border-radius: 1px;
+      flex-shrink: 0;
     }
+    .color-frost     { background: #3a6fc4; box-shadow: 0 0 4px #3a6fc4; }
     .color-fever     { background: #d96105; box-shadow: 0 0 4px #d96105; }
     .color-infection { background: #b30d03; box-shadow: 0 0 4px #b30d03; }
     .color-necrosis  { background: #000000; border: 1px solid #4a0905; box-shadow: 0 0 6px #4a0905; }
+
+    /* ─── Anomalie globale temps réel ──────────────────── */
+    #global-mean {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      text-align: center;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 1.5s ease 0.8s;
+      user-select: none;
+      pointer-events: none;
+    }
+    #global-mean-label {
+      font-size: 8px;
+      color: rgba(255,255,255,0.18);
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+    #global-mean-value {
+      font-size: 22px;
+      letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.55);
+      line-height: 1.1;
+      transition: color 0.8s ease;
+    }
+    #global-mean-value.mean-fever     { color: rgba(217, 97,  5, 0.75); }
+    #global-mean-value.mean-infection { color: rgba(179, 13,  3, 0.80); }
+    #global-mean-value.mean-necrosis  { color: rgba(200, 80, 40, 0.90); }
+    #global-mean-value.mean-frost     { color: rgba( 58,111,196, 0.70); }
+    #global-mean-baseline {
+      font-size: 8px;
+      color: rgba(255,255,255,0.12);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    /* ─── Échelle thermique (barre de gradient) ───────── */
+    #temp-scale {
+      position: fixed;
+      bottom: 90px;
+      right: 28px;
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      z-index: 10;
+      opacity: 0;
+      transition: opacity 1.5s ease 0.9s;
+      user-select: none;
+    }
+    #temp-scale-bar {
+      width: 3px;
+      height: 100px;
+      border-radius: 2px;
+      background: linear-gradient(
+        to top,
+        #3a6fc4 0%,        /* -3°C cryosis */
+        #2a4a8a 15%,       /* -1°C */
+        rgba(255,255,255,0.10) 35%,  /* 0°C baseline */
+        #c46a0a 55%,       /* +1.5°C fever */
+        #8a0a02 75%,       /* +3.5°C infection */
+        #0d0302 100%       /* +6°C necrosis */
+      );
+    }
+    #temp-scale-ticks {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 7px;
+      color: rgba(255,255,255,0.22);
+      letter-spacing: 0.05em;
+      height: 100px;
+      text-align: left;
+    }
+    #temp-scale-ticks span {
+      line-height: 1;
+    }
+    #temp-scale-unit {
+      position: absolute;
+      bottom: -14px;
+      right: 0;
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 7px;
+      color: rgba(255,255,255,0.12);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
 
     /* ─── Jalon technologique (sous le slider) ─────────── */
     #milestone {
@@ -285,9 +396,14 @@
       #title-sub  { display: none; }
       #anomaly-label { font-size: 8px; top: 16px; right: 16px; }
 
+      /* Anomalie globale — plus petit sur mobile */
+      #global-mean-value { font-size: 16px; }
+      #global-mean-label, #global-mean-baseline { font-size: 7px; }
+
       /* Légende clinique — plus proche du bord */
       #clinical-legend { top: 60px; right: 16px; gap: 6px; }
-      .legend-item { font-size: 8px; gap: 7px; }
+      .legend-phase { font-size: 8px; }
+      .legend-temp  { font-size: 7px; }
 
       /* Jalon technologique — ramène plus haut */
       #milestone { bottom: 76px; font-size: 8px; white-space: normal; max-width: 80vw; text-align: center; }
@@ -355,16 +471,54 @@
   <!-- Clinical legend -->
   <div id="clinical-legend">
     <div class="legend-item">
-      <span>Phase 1: Fever</span>
+      <div class="legend-label">
+        <span class="legend-phase">Phase 1 &mdash; Fever</span>
+        <span class="legend-temp">+0.5°C &rarr; +1.5°C</span>
+      </div>
       <div class="legend-color color-fever"></div>
     </div>
     <div class="legend-item">
-      <span>Phase 2: Infection</span>
+      <div class="legend-label">
+        <span class="legend-phase">Phase 2 &mdash; Infection</span>
+        <span class="legend-temp">+1.5°C &rarr; +3.5°C</span>
+      </div>
       <div class="legend-color color-infection"></div>
     </div>
     <div class="legend-item">
-      <span>Phase 3: Necrosis</span>
+      <div class="legend-label">
+        <span class="legend-phase">Phase 3 &mdash; Necrosis</span>
+        <span class="legend-temp">+3.5°C and above</span>
+      </div>
       <div class="legend-color color-necrosis"></div>
+    </div>
+    <div class="legend-item">
+      <div class="legend-label">
+        <span class="legend-phase">Cryosis</span>
+        <span class="legend-temp">below &minus;0.5°C</span>
+      </div>
+      <div class="legend-color color-frost"></div>
+    </div>
+  </div>
+
+  <!-- Anomalie globale moyenne temps réel -->
+  <div id="global-mean">
+    <div id="global-mean-label">Global mean anomaly</div>
+    <div id="global-mean-value">&mdash;</div>
+    <div id="global-mean-baseline">vs. 1880 baseline</div>
+  </div>
+
+  <!-- Thermal scale bar -->
+  <div id="temp-scale">
+    <div style="position:relative;">
+      <div id="temp-scale-bar"></div>
+      <span id="temp-scale-unit">Anomaly °C</span>
+    </div>
+    <div id="temp-scale-ticks">
+      <span>+6°</span>
+      <span>+3.5°</span>
+      <span>+1.5°</span>
+      <span>&ensp;0°</span>
+      <span>&minus;3°</span>
     </div>
   </div>
 

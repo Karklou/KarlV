@@ -266,6 +266,20 @@ function setTimeSlice(monthIndex) {
 
   thermalTexture.needsUpdate = true;
 
+  // ─── Calcul de l'anomalie globale moyenne ─────────────────────
+  let sum = 0;
+  let count = 0;
+  for (let i = 0; i < SLICE_SIZE; i++) {
+    const val = thermalData[sliceOffset + i];
+    if (val > -900.0) {
+      sum += val;
+      count++;
+    }
+  }
+  if (count > 0) {
+    updateGlobalMean(sum / count);
+  }
+
   // ─── Extraction des hotspots pour les pustules lumineuses ──────
   const hotspots = [];
   for (let i = 0; i < SLICE_SIZE; i++) {
@@ -309,6 +323,30 @@ function setTimeSlice(monthIndex) {
 
   // Update HUD
   updateDateDisplay(monthIndex);
+}
+
+
+// ─── ANOMALIE GLOBALE MOYENNE ───────────────────────────────────────────────
+
+function updateGlobalMean(meanC) {
+  const el    = document.getElementById('global-mean-value');
+  if (!el) return;
+
+  const sign  = meanC >= 0 ? '+' : '';
+  el.textContent = sign + meanC.toFixed(2) + '°C';
+
+  // Couleur dynamique alignée sur les seuils du shader
+  el.className = '';
+  if (meanC <= -0.5) {
+    el.classList.add('mean-frost');
+  } else if (meanC >= 3.5) {
+    el.classList.add('mean-necrosis');
+  } else if (meanC >= 1.5) {
+    el.classList.add('mean-infection');
+  } else if (meanC >= 0.5) {
+    el.classList.add('mean-fever');
+  }
+  // Entre -0.5 et +0.5 : neutre (blanc atténué, pas de classe)
 }
 
 
@@ -391,12 +429,17 @@ function showIntroModal() {
 
   const legendEl = document.getElementById('clinical-legend');
 
+  const meanEl  = document.getElementById('global-mean');
+  const scaleEl = document.getElementById('temp-scale');
+
   const dismiss = () => {
     if (modal) modal.classList.remove('visible');
     // Reveal HUD + legend with fade
-    if (titleEl) titleEl.style.opacity = '1';
-    if (labelEl) labelEl.style.opacity = '1';
+    if (titleEl)  titleEl.style.opacity  = '1';
+    if (labelEl)  labelEl.style.opacity  = '1';
     if (legendEl) legendEl.style.opacity = '1';
+    if (meanEl)   meanEl.style.opacity   = '1';
+    if (scaleEl)  scaleEl.style.opacity  = '1';
     // Enable controls
     enableTimeControls();
   };
