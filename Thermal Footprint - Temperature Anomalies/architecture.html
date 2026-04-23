@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Infected Globe — Architecture</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0a0f;
+    color: #c8c8d0;
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+    padding: 32px;
+    min-height: 100vh;
+  }
+
+  h1 {
+    color: #fff;
+    font-size: 18px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    color: #555;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    margin-bottom: 48px;
+  }
+
+  /* ─── LAYOUT ─── */
+  .diagram {
+    display: grid;
+    grid-template-columns: 240px 60px 240px 60px 320px;
+    grid-template-rows: auto;
+    align-items: start;
+    gap: 0;
+  }
+
+  /* ─── COLUMNS ─── */
+  .col-etl    { grid-column: 1; }
+  .arrow-1    { grid-column: 2; display:flex; align-items:flex-start; padding-top: 60px; }
+  .col-loader { grid-column: 3; }
+  .arrow-2    { grid-column: 4; display:flex; align-items:flex-start; padding-top: 60px; }
+  .col-gpu    { grid-column: 5; }
+
+  /* ─── COLUMN HEADERS ─── */
+  .col-label {
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #444;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #1e1e2a;
+  }
+
+  /* ─── CARDS ─── */
+  .card {
+    border: 1px solid #222;
+    border-radius: 4px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    background: #0f0f18;
+    position: relative;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+  }
+
+  .card-body {
+    font-size: 11px;
+    color: #666;
+    line-height: 1.7;
+  }
+
+  .card-body em {
+    color: #888;
+    font-style: normal;
+  }
+
+  .card-tag {
+    display: inline-block;
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    padding: 2px 6px;
+    border-radius: 2px;
+    margin-bottom: 8px;
+  }
+
+  /* ─── COULEURS THÉMATIQUES ─── */
+  .theme-source    { border-color: #1a2a1a; }
+  .theme-source    .card-title { color: #4a8a4a; }
+  .theme-source    .card-tag   { background: #1a2a1a; color: #4a8a4a; }
+
+  .theme-etl       { border-color: #2a1a0a; }
+  .theme-etl       .card-title { color: #a06020; }
+  .theme-etl       .card-tag   { background: #2a1a0a; color: #a06020; }
+
+  .theme-output    { border-color: #1a1a2a; }
+  .theme-output    .card-title { color: #5050c0; }
+  .theme-output    .card-tag   { background: #1a1a2a; color: #5050c0; }
+
+  .theme-loader    { border-color: #2a1a2a; }
+  .theme-loader    .card-title { color: #906090; }
+  .theme-loader    .card-tag   { background: #2a1a2a; color: #906090; }
+
+  .theme-texture   { border-color: #1a2030; }
+  .theme-texture   .card-title { color: #3a6090; }
+  .theme-texture   .card-tag   { background: #1a2030; color: #3a6090; }
+
+  .theme-shader    { border-color: #2a1a1a; }
+  .theme-shader    .card-title { color: #c04040; }
+  .theme-shader    .card-tag   { background: #2a1a1a; color: #c04040; }
+
+  .theme-render    { border-color: #1a2a1a; }
+  .theme-render    .card-title { color: #309060; }
+  .theme-render    .card-tag   { background: #1a2a1a; color: #309060; }
+
+  .theme-ui        { border-color: #252510; }
+  .theme-ui        .card-title { color: #908030; }
+  .theme-ui        .card-tag   { background: #252510; color: #908030; }
+
+  /* ─── ARROWS ─── */
+  .arrow-line {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    padding-top: 4px;
+  }
+
+  .arrow-stem {
+    width: 1px;
+    height: 32px;
+    background: #333;
+  }
+
+  .arrow-horiz {
+    display: flex;
+    align-items: center;
+    width: 100%;
+  }
+
+  .arrow-horiz-line {
+    flex: 1;
+    height: 1px;
+    background: #333;
+  }
+
+  .arrow-label {
+    font-size: 9px;
+    color: #444;
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+
+  .arrow-head {
+    color: #444;
+    font-size: 12px;
+    margin-left: -2px;
+  }
+
+  /* ─── HIGHLIGHTS ─── */
+  .highlight {
+    font-family: monospace;
+    font-size: 10px;
+    background: #111;
+    border: 1px solid #222;
+    padding: 2px 5px;
+    border-radius: 2px;
+    color: #888;
+    display: inline-block;
+    margin: 2px 0;
+  }
+
+  .sentinel { color: #c04040; }
+  .valid    { color: #40a060; }
+  .num      { color: #5080c0; }
+
+  /* ─── SECTION TITLE ─── */
+  .section-block {
+    margin-bottom: 40px;
+  }
+
+  /* ─── BOTTOM LEGEND ─── */
+  .legend {
+    margin-top: 48px;
+    border-top: 1px solid #1a1a24;
+    padding-top: 24px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  }
+
+  .legend-item { }
+  .legend-title {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 8px;
+  }
+  .legend-body {
+    font-size: 11px;
+    color: #555;
+    line-height: 1.7;
+  }
+
+  /* ─── FLOW FULL ─── */
+  .full-flow {
+    display: flex;
+    align-items: flex-start;
+    gap: 0;
+    margin-top: 0;
+  }
+
+  .flow-arrow {
+    display: flex;
+    align-items: center;
+    padding-top: 36px;
+    width: 48px;
+    flex-shrink: 0;
+  }
+
+  .flow-arrow-line {
+    flex: 1;
+    height: 1px;
+    background: #2a2a3a;
+  }
+
+  .flow-arrow-head {
+    color: #2a2a3a;
+    font-size: 14px;
+  }
+
+  .flow-label-above {
+    font-size: 9px;
+    color: #3a3a4a;
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin-bottom: 2px;
+  }
+
+  .flow-col {
+    flex-shrink: 0;
+  }
+
+  /* ─── SEPARATOR ─── */
+  hr {
+    border: none;
+    border-top: 1px solid #141420;
+    margin: 32px 0;
+  }
+
+  /* ─── UNIFORM TABLE ─── */
+  .uniform-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-top: 6px;
+  }
+
+  .uniform-table td {
+    padding: 4px 8px 4px 0;
+    border-bottom: 1px solid #111;
+    vertical-align: top;
+    color: #666;
+  }
+
+  .uniform-table td:first-child {
+    font-family: monospace;
+    color: #4a6a9a;
+    white-space: nowrap;
+    padding-right: 12px;
+  }
+
+  /* ─── PHASE STRIP ─── */
+  .phase-strip {
+    display: flex;
+    gap: 1px;
+    margin-top: 8px;
+    margin-bottom: 4px;
+    border-radius: 3px;
+    overflow: hidden;
+    height: 8px;
+  }
+
+  .phase-seg {
+    flex: 1;
+  }
+
+  .phase-label {
+    display: flex;
+    gap: 1px;
+    font-size: 9px;
+    color: #555;
+    margin-top: 4px;
+  }
+
+  .phase-label span { flex: 1; }
+</style>
+</head>
+<body>
+
+<h1>The Infected Globe — Architecture complète</h1>
+<div class="subtitle">Pipeline ETL + Moteur de rendu + Shaders GLSL</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 1 : ETL
+═══════════════════════════════════════════════════════════ -->
+
+<div style="margin-bottom: 8px; font-size: 10px; letter-spacing: 0.15em; color: #333; text-transform: uppercase;">01 — Pipeline ETL (Python, hors navigateur)</div>
+
+<div style="display: flex; align-items: flex-start; gap: 0; margin-bottom: 48px; flex-wrap: nowrap; overflow-x: auto;">
+
+  <!-- SOURCE -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Source NASA</div>
+    <div class="card theme-source">
+      <span class="card-tag">Fichier .nc</span>
+      <div class="card-title">gistemp1200_GHCNv4_ERSSTv5.nc</div>
+      <div class="card-body">
+        Format NetCDF<br>
+        Variable : <em>tempanomaly</em><br>
+        Dimensions :<br>
+        &nbsp;&nbsp;<em>time × lat × lon</em><br>
+        &nbsp;&nbsp;<em>≈ 1 740 mois</em><br>
+        &nbsp;&nbsp;<em>90 lat × 180 lon</em><br>
+        Référence : 1951–1980
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#2a2a1a;"></div>
+    <div style="color:#2a2a1a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- ÉTAPE 1 -->
+  <div style="flex-shrink:0; width:200px;">
+    <div class="col-label">Étape 1 — Extraction</div>
+    <div class="card theme-etl">
+      <span class="card-tag">load_dataset()</span>
+      <div class="card-title">xarray.open_dataset()</div>
+      <div class="card-body">
+        Charge la variable<br>
+        <em>tempanomaly</em><br>
+        Valide les dimensions<br>
+        Retourne un DataArray
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#2a2a1a;"></div>
+    <div style="color:#2a2a1a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- ÉTAPE 2 -->
+  <div style="flex-shrink:0; width:200px;">
+    <div class="col-label">Étape 2 — Nettoyage</div>
+    <div class="card theme-etl">
+      <span class="card-tag">clean_data()</span>
+      <div class="card-title">Traitement des NaN</div>
+      <div class="card-body">
+        <span class="sentinel">NaN → -999.0</span><br>
+        <em>(sentinelle, jamais 0.0)</em><br><br>
+        Cast → float32<br>
+        Le shader détecte<br>
+        val &lt; -900.0
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#2a2a1a;"></div>
+    <div style="color:#2a2a1a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- ÉTAPE 3 -->
+  <div style="flex-shrink:0; width:200px;">
+    <div class="col-label">Étape 3 — Export binaire</div>
+    <div class="card theme-etl">
+      <span class="card-tag">export_binary()</span>
+      <div class="card-title">Float32 brut</div>
+      <div class="card-body">
+        Aplatit en 1D<br>
+        <em>time × lat × lon</em><br>
+        Écriture par blocs<br>
+        <em>(1M floats/chunk)</em><br>
+        Little-endian
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#2a2a1a;"></div>
+    <div style="color:#2a2a1a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- OUTPUTS -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Sorties</div>
+
+    <div class="card theme-output">
+      <span class="card-tag">thermal_anomalies.bin</span>
+      <div class="card-title">Float32Array binaire</div>
+      <div class="card-body">
+        <span class="num">180 × 90 × 1 740</span><br>
+        ≈ 28M floats<br>
+        ≈ 112 Mo sur disque<br>
+        Servi en streaming<br>
+        par fetch()
+      </div>
+    </div>
+
+    <div class="card theme-output">
+      <span class="card-tag">metadata.json</span>
+      <div class="card-title">Structure pour Three.js</div>
+      <div class="card-body">
+        width, height, depth<br>
+        min/max anomalie<br>
+        plage temporelle<br>
+        total_bytes
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 2 : CHARGEMENT NAVIGATEUR
+═══════════════════════════════════════════════════════════ -->
+
+<hr>
+<div style="margin-bottom: 8px; font-size: 10px; letter-spacing: 0.15em; color: #333; text-transform: uppercase;">02 — Chargement navigateur (infecte_main.js)</div>
+
+<div style="display: flex; align-items: flex-start; gap: 0; margin-bottom: 48px; flex-wrap: nowrap; overflow-x: auto;">
+
+  <!-- BIN + META -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Fichiers disque</div>
+    <div class="card theme-output">
+      <span class="card-tag">fetch()</span>
+      <div class="card-title">thermal_anomalies.bin</div>
+      <div class="card-body">
+        Streaming avec progress<br>
+        ReadableStream reader<br>
+        Assemblage chunks<br>
+        → Uint8Array → Float32Array
+      </div>
+    </div>
+    <div class="card theme-output">
+      <span class="card-tag">fetch()</span>
+      <div class="card-title">metadata.json</div>
+      <div class="card-body">
+        Dimensions exactes<br>
+        Borne min/max<br>
+        Nombre de mois total
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#1a1a2a;"></div>
+    <div style="color:#1a1a2a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- SLICE -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Extraction de tranche</div>
+    <div class="card theme-loader">
+      <span class="card-tag">setTimeSlice(monthIndex)</span>
+      <div class="card-title">Coupe temporelle</div>
+      <div class="card-body">
+        Offset = <em>month × 180 × 90</em><br><br>
+        Pour chaque cellule :<br>
+        <span class="sentinel">val &lt; -900 → alpha = 0</span><br>
+        <span class="valid">sinon → normaliser</span><br>
+        <em>(val - min) / range</em><br>
+        → Uint8 [0–255]<br><br>
+        Stocké dans canal R<br>
+        Alpha = 0 ou 255
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#1a1a2a;"></div>
+    <div style="color:#1a1a2a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- TEXTURES -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Textures GPU</div>
+    <div class="card theme-texture">
+      <span class="card-tag">DataTexture — thermique</span>
+      <div class="card-title">uThermalAnomaly</div>
+      <div class="card-body">
+        <span class="num">180 × 90</span> RGBA Uint8<br>
+        Réutilisée chaque frame<br>
+        <em>needsUpdate = true</em><br>
+        Linear interpolation<br>
+        flipY = false
+      </div>
+    </div>
+    <div class="card theme-texture">
+      <span class="card-tag">DataTexture — hotspots</span>
+      <div class="card-title">uHotspotData</div>
+      <div class="card-body">
+        <span class="num">800 × 1</span> Float RGBA<br>
+        R=u, G=v, B=intensité<br>
+        A=phase (déterministe)<br>
+        Nearest filter
+      </div>
+    </div>
+    <div class="card theme-texture">
+      <span class="card-tag">TextureLoader × 6</span>
+      <div class="card-title">Textures Terre</div>
+      <div class="card-body">
+        color, bump, clouds<br>
+        specular, night, stars<br>
+        2k–4k JPEG/PNG
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#1a1a2a;"></div>
+    <div style="color:#1a1a2a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- UNIFORMS -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Uniforms injectés</div>
+    <div class="card theme-loader">
+      <span class="card-tag">ShaderMaterial uniforms</span>
+      <div class="card-title">Passage JS → GLSL</div>
+      <div class="card-body">
+        <table class="uniform-table">
+          <tr><td>uTime</td><td>rotation auto</td></tr>
+          <tr><td>uThermalAnomaly</td><td>texture 2D slice</td></tr>
+          <tr><td>uThermalIntensity</td><td>multiplicateur</td></tr>
+          <tr><td>uDisplayMin/Max</td><td>bornes °C</td></tr>
+          <tr><td>uHotspotData</td><td>particules</td></tr>
+          <tr><td>uHotspotCount</td><td>nb actifs</td></tr>
+          <tr><td>uRotationOffset</td><td>drag souris</td></tr>
+          <tr><td>uPlanetRadius</td><td>zoom molette</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 3 : MOTEUR DE RENDU
+═══════════════════════════════════════════════════════════ -->
+
+<hr>
+<div style="margin-bottom: 8px; font-size: 10px; letter-spacing: 0.15em; color: #333; text-transform: uppercase;">03 — Moteur de rendu GPU (infecte_shaders.js)</div>
+
+<div style="display:flex; gap: 0; align-items: flex-start; flex-wrap: nowrap; overflow-x: auto; margin-bottom: 48px;">
+
+  <!-- VERTEX -->
+  <div style="flex-shrink:0; width:240px;">
+    <div class="col-label">Vertex Shader</div>
+    <div class="card theme-shader">
+      <span class="card-tag">Fullscreen quad 2×2</span>
+      <div class="card-title">PlaneGeometry passthrough</div>
+      <div class="card-body">
+        Pas de géométrie 3D<br>
+        Le quad couvre tout l'écran<br><br>
+        Calcule <em>vUv</em><br>
+        (coordonnées image)<br><br>
+        Calcule <em>vSunDirection</em><br>
+        (direction lumière)
+      </div>
+    </div>
+    <div class="card theme-render" style="border-color:#111; background:#080810;">
+      <span class="card-tag" style="background:#0a120a; color:#2a6a2a;">Caméra</span>
+      <div class="card-title" style="color:#2a5a2a;">OrthographicCamera(-1,1,1,-1)</div>
+      <div class="card-body">
+        Passthrough strict<br>
+        Le shader fait sa propre<br>
+        projection en ray casting
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#2a1a1a;"></div>
+    <div style="color:#2a1a1a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- FRAGMENT RAYCASTING -->
+  <div style="flex-shrink:0; width:260px;">
+    <div class="col-label">Fragment Shader — Raycasting</div>
+    <div class="card theme-shader">
+      <span class="card-tag">Ray depuis caméra</span>
+      <div class="card-title">sphIntersect() par pixel</div>
+      <div class="card-body">
+        Chaque pixel lance un rayon<br>
+        Teste l'intersection sphère<br>
+        mathématiquement (pas de mesh)<br><br>
+        <em>ro</em> = (0,0,6) fixe<br>
+        <em>rd</em> = normalize(vUv, -1)<br><br>
+        Si intersection →<br>
+        &nbsp;&nbsp;calculer point 3D<br>
+        &nbsp;&nbsp;appliquer PLANET_ROTATION<br>
+        &nbsp;&nbsp;→ sphereProjection() → UV<br>
+        &nbsp;&nbsp;→ lire toutes les textures
+      </div>
+    </div>
+    <div class="card theme-shader" style="margin-top: 10px;">
+      <span class="card-tag">sphereProjection()</span>
+      <div class="card-title">UVs calculés (pas natifs)</div>
+      <div class="card-body">
+        <em>longitude = atan(dir.x, dir.z)</em><br>
+        <em>latitude = asin(dir.y)</em><br>
+        Mapping sphérique propre<br>
+        Évite les artefacts IcosahedronGeo
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#2a1a1a;"></div>
+    <div style="color:#2a1a1a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- INFECTION -->
+  <div style="flex-shrink:0; width:260px;">
+    <div class="col-label">Fragment — Infection thermique</div>
+    <div class="card theme-shader">
+      <span class="card-tag">intersectPlanet() → couleur finale</span>
+      <div class="card-title">3 phases de maladie</div>
+      <div class="card-body">
+        Lit <em>uThermalAnomaly</em> sur les UVs<br>
+        Si alpha=0 → pas de données<br><br>
+        Décode : <em>R × (max-min) + min</em><br><br>
+
+        <div class="phase-strip">
+          <div class="phase-seg" style="background:#4a3010; flex:1.5;"></div>
+          <div class="phase-seg" style="background:#6a1005; flex:1.5;"></div>
+          <div class="phase-seg" style="background:#101005; flex:1;"></div>
+        </div>
+        <div class="phase-label">
+          <span style="color:#a06020;">Fièvre<br>0→2°C</span>
+          <span style="color:#902010;">Infection<br>2→4°C</span>
+          <span style="color:#505010;">Nécrose<br>&gt;4°C</span>
+        </div>
+        <br>
+        Anomalies négatives :<br>
+        &nbsp;<em style="color:#3060a0;">gel / cyanose bleue</em>
+      </div>
+    </div>
+    <div class="card theme-shader" style="margin-top: 10px;">
+      <span class="card-tag">Pustules lumineuses</span>
+      <div class="card-title">800 hotspots / frame</div>
+      <div class="card-body">
+        Loop sur <em>uHotspotData</em><br>
+        Distance UV + correction lat<br>
+        Glow + ring + halo<br>
+        Pulse = sin(uTime × speed)<br>
+        <em style="color:#906030;">jaune → orange → rouge → charbon</em>
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#2a1a1a;"></div>
+    <div style="color:#2a1a1a; font-size:14px;">▶</div>
+  </div>
+
+  <!-- FINAL -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Sortie finale</div>
+    <div class="card theme-render">
+      <span class="card-tag">radiance()</span>
+      <div class="card-title">Composition finale</div>
+      <div class="card-body">
+        diffuse + specular<br>
+        + émission (nuit + pustules)<br>
+        + atmosphère<br>
+        + étoiles (si espace)<br><br>
+        Tone mapping Reinhard<br>
+        Vignette bords<br>
+        → <em>gl_FragColor</em>
+      </div>
+    </div>
+    <div class="card theme-render" style="margin-top:10px;">
+      <span class="card-tag">planetNoise()</span>
+      <div class="card-title">Bump thermique</div>
+      <div class="card-body">
+        Déforme la sphère<br>
+        avec l'anomalie<br>
+        <em>swell = t² × 0.002</em><br>
+        <em>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;+ t × 0.005</em><br>
+        Pustules géométriques
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     SECTION 4 : CONTRÔLE TEMPOREL
+═══════════════════════════════════════════════════════════ -->
+
+<hr>
+<div style="margin-bottom: 8px; font-size: 10px; letter-spacing: 0.15em; color: #333; text-transform: uppercase;">04 — Contrôle temporel et boucle d'animation</div>
+
+<div style="display:flex; gap:0; align-items: flex-start; flex-wrap: nowrap; overflow-x: auto; margin-bottom:48px;">
+
+  <!-- USER INPUT -->
+  <div style="flex-shrink:0; width:200px;">
+    <div class="col-label">Input utilisateur</div>
+    <div class="card theme-ui">
+      <span class="card-tag">Slider HTML</span>
+      <div class="card-title">#time-slider</div>
+      <div class="card-body">
+        Range 0 → 1739<br>
+        → <em>targetTimeIndex</em><br><br>
+        Bouton ▶ play/pause<br>
+        6 mois/seconde<br><br>
+        Drag : rotation<br>
+        Molette : zoom<br>
+        Pinch : zoom mobile
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#252510;"></div>
+    <div style="color:#252510; font-size:14px;">▶</div>
+  </div>
+
+  <!-- INERTIE -->
+  <div style="flex-shrink:0; width:200px;">
+    <div class="col-label">Inertie temporelle</div>
+    <div class="card theme-ui">
+      <span class="card-tag">animate() — chaque frame</span>
+      <div class="card-title">Lissage exponentiel</div>
+      <div class="card-body">
+        <em>smooth += (target - smooth) × 0.08</em><br><br>
+        La maladie gonfle<br>
+        organiquement<br>
+        Pas de saut brusque<br><br>
+        setTimeSlice(<br>
+        &nbsp;&nbsp;Math.round(smooth)<br>
+        )
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#252510;"></div>
+    <div style="color:#252510; font-size:14px;">▶</div>
+  </div>
+
+  <!-- SLICE EXTRACT -->
+  <div style="flex-shrink:0; width:220px;">
+    <div class="col-label">Mise à jour GPU</div>
+    <div class="card theme-ui">
+      <span class="card-tag">setTimeSlice(month)</span>
+      <div class="card-title">Chaque changement de mois</div>
+      <div class="card-body">
+        Lit 16 200 floats<br>
+        (180×90) depuis le buffer<br>
+        Normalise → Uint8<br>
+        Remplit thermalRGBA<br><br>
+        Calcule les 800 hotspots<br>
+        Échantillonnage spatial<br>
+        uniforme (step = N/800)<br><br>
+        <em>needsUpdate = true</em><br>
+        sur les 2 textures
+      </div>
+    </div>
+  </div>
+
+  <!-- ARROW -->
+  <div style="flex-shrink:0; width:48px; padding-top:52px; display:flex; align-items:center;">
+    <div style="flex:1; height:1px; background:#252510;"></div>
+    <div style="color:#252510; font-size:14px;">▶</div>
+  </div>
+
+  <!-- HUD -->
+  <div style="flex-shrink:0; width:200px;">
+    <div class="col-label">HUD HTML</div>
+    <div class="card theme-ui">
+      <span class="card-tag">#date-display</span>
+      <div class="card-title">Affichage temporel</div>
+      <div class="card-body">
+        Mois + Année calculés<br>
+        depuis 1880-01<br><br>
+        Jalons technologiques<br>
+        fade-in au passage<br>
+        <em>(1880 → 2024)</em><br><br>
+        Légende clinique<br>
+        CSS absolu / monospace
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     LÉGENDE / RÉSUMÉ
+═══════════════════════════════════════════════════════════ -->
+
+<div class="legend">
+  <div class="legend-item">
+    <div class="legend-title">Décision clé — Raycasting vs Mesh</div>
+    <div class="legend-body">
+      Le globe n'est pas un objet 3D. C'est un quad 2D qui couvre tout l'écran.
+      Chaque pixel calcule lui-même l'intersection avec la sphère mathématique.
+      Avantage : zéro problème d'UVs, rendu pixel-perfect. Inconvénient : pas
+      d'OrbitControls natif — la rotation est simulée via uniform.
+    </div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-title">Décision clé — Float32 → Uint8 à la volée</div>
+    <div class="legend-body">
+      Les données brutes restent en Float32Array en mémoire JS (≈112 Mo).
+      À chaque changement de mois, une seule tranche est normalisée en Uint8
+      et uploadée sur le GPU. Ce design évite de stocker 1 740 textures GPU
+      et minimise le trafic CPU→GPU.
+    </div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-title">Décision clé — Sentinel -999.0</div>
+    <div class="legend-body">
+      Les zones sans données (océan dans certaines versions GISTEMP) utilisent
+      -999.0 comme valeur sentinelle, jamais 0.0. Dans la texture, alpha=0
+      signale au shader de ne rien faire. 0.0 aurait simulé une anomalie
+      neutre, faussant visuellement les zones de données manquantes.
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

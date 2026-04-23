@@ -296,27 +296,30 @@
     }
     #global-mean-label {
       font-size: 8px;
-      color: rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.50);
       letter-spacing: 0.18em;
       text-transform: uppercase;
+      text-shadow: 0 1px 12px rgba(0,0,0,0.90);
     }
     #global-mean-value {
       font-size: 22px;
       letter-spacing: 0.04em;
-      color: rgba(255,255,255,0.55);
+      color: rgba(255,255,255,0.88);
       line-height: 1.1;
       transition: color 0.8s ease;
+      text-shadow: 0 2px 20px rgba(0,0,0,0.95), 0 0 40px rgba(0,0,0,0.70);
     }
-    #global-mean-value.mean-fever     { color: rgba(217, 97,  5, 0.75); }
-    #global-mean-value.mean-infection { color: rgba(179, 13,  3, 0.80); }
-    #global-mean-value.mean-necrosis  { color: rgba(200, 80, 40, 0.90); }
-    #global-mean-value.mean-frost     { color: rgba( 58,111,196, 0.70); }
+    #global-mean-value.mean-fever     { color: rgba(217, 97,  5, 0.92); }
+    #global-mean-value.mean-infection { color: rgba(179, 13,  3, 0.95); }
+    #global-mean-value.mean-necrosis  { color: rgba(200, 80, 40, 1.00); }
+    #global-mean-value.mean-frost     { color: rgba( 58,111,196, 0.90); }
     #global-mean-baseline {
       font-size: 8px;
-      color: rgba(255,255,255,0.12);
+      color: rgba(255,255,255,0.38);
       letter-spacing: 0.1em;
       text-transform: uppercase;
       margin-top: 2px;
+      text-shadow: 0 1px 12px rgba(0,0,0,0.90);
     }
 
     /* ─── Échelle thermique (barre de gradient) ───────── */
@@ -371,15 +374,40 @@
       text-transform: uppercase;
     }
 
-    /* ─── Jalon technologique (sous le slider) ─────────── */
-    #milestone {
+    /* ─── Grande année centrale ──────────────────────────── */
+    #year-big {
       position: fixed;
-      bottom: 68px;
+      bottom: 56px;
       left: 50%;
       transform: translateX(-50%);
       font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-      font-size: 9px;
-      color: rgba(255,255,255,0.20);
+      font-size: 48px;
+      font-weight: 400;
+      letter-spacing: 0.18em;
+      color: rgba(255,255,255,0.62);
+      text-shadow: 0 2px 28px rgba(0,0,0,0.95), 0 0 48px rgba(0,0,0,0.80);
+      user-select: none;
+      z-index: 10;
+      pointer-events: none;
+      line-height: 1;
+      opacity: 0;
+      transition: color 1.2s ease, opacity 1.5s ease 0.5s;
+    }
+    #year-big.year-fever     { color: rgba(217,  97,   5, 0.80); }
+    #year-big.year-infection { color: rgba(179,  13,   3, 0.85); }
+    #year-big.year-necrosis  { color: rgba(200,  80,  40, 0.90); }
+    #year-big.year-frost     { color: rgba( 58, 111, 196, 0.75); }
+
+    /* ─── Jalon technologique (au-dessus de l'année) ────── */
+    #milestone {
+      position: fixed;
+      bottom: 112px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+      font-size: 10px;
+      color: rgba(255,255,255,0.52);
+      text-shadow: 0 1px 16px rgba(0,0,0,0.90);
       letter-spacing: 0.10em;
       text-transform: uppercase;
       text-align: center;
@@ -388,6 +416,65 @@
       transition: opacity 0.6s ease;
       white-space: nowrap;
     }
+
+    /* ════════════════════════════════════════════════════════
+       VIDEO RECORDING MODE — retirer après tournage
+       Supprimer : ce bloc CSS + <div id="video-panel"> dans le HTML
+       ════════════════════════════════════════════════════════ */
+    #video-panel {
+      position: fixed;
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      z-index: 20;
+      opacity: 0;
+      transition: opacity 1.5s ease 0.5s;
+    }
+    #video-play-btn {
+      background: none;
+      border: 1px solid rgba(255,255,255,0.18);
+      color: rgba(255,255,255,0.55);
+      font-size: 18px;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s, color 0.2s, background 0.2s;
+      font-family: monospace;
+      line-height: 1;
+      padding-left: 3px; /* compense optiquement le triangle */
+    }
+    #video-play-btn:hover {
+      border-color: rgba(255,255,255,0.45);
+      color: #fff;
+      background: rgba(255,255,255,0.04);
+    }
+    #video-stops {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+    }
+    .vstop {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.14);
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+    }
+    .vstop.active  {
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 0 8px rgba(255,255,255,0.5);
+    }
+    .vstop.reached { background: rgba(255,255,255,0.32); }
+    /* ════ FIN VIDEO RECORDING MODE CSS ════════════════════ */
 
     /* ─── Mobile ────────────────────────────────────────── */
     @media (max-width: 600px) {
@@ -405,8 +492,11 @@
       .legend-phase { font-size: 8px; }
       .legend-temp  { font-size: 7px; }
 
+      /* Grande année — plus compacte sur mobile */
+      #year-big { font-size: 32px; bottom: 60px; letter-spacing: 0.12em; }
+
       /* Jalon technologique — ramène plus haut */
-      #milestone { bottom: 76px; font-size: 8px; white-space: normal; max-width: 80vw; text-align: center; }
+      #milestone { bottom: 100px; font-size: 8px; white-space: normal; max-width: 80vw; text-align: center; }
 
       /* Contrôles — barre plus haute, bouton plus large pour les doigts */
       #controls { bottom: 20px; gap: 10px; }
@@ -441,6 +531,19 @@
   </style>
 </head>
 <body>
+
+  <!-- ════ VIDEO RECORDING MODE — retirer après tournage ════
+       Supprimer aussi le bloc CSS #video-panel dans le <style>  -->
+  <div id="video-panel">
+    <button id="video-play-btn">&#9654;</button>
+    <div id="video-stops">
+      <div class="vstop" data-idx="0"></div>
+      <div class="vstop" data-idx="1"></div>
+      <div class="vstop" data-idx="2"></div>
+      <div class="vstop" data-idx="3"></div>
+    </div>
+  </div>
+  <!-- ════ FIN VIDEO RECORDING MODE HTML ════════════════ -->
 
   <!-- Loading -->
   <div id="loading">
@@ -524,6 +627,9 @@
 
   <!-- Technological milestone -->
   <div id="milestone"></div>
+
+  <!-- Grande année centrale -->
+  <div id="year-big"></div>
 
   <!-- Time controls -->
   <div id="controls">

@@ -188,28 +188,33 @@ async function loadThermalData() {
 
     if (progressEl) progressEl.textContent = 'Acquiring thermal records...';
 
-    // Binary — split into chunks for GitHub hosting (100MB limit per file)
-    const chunkFiles = ['thermal_chunk_aa', 'thermal_chunk_ab', 'thermal_chunk_ac'];
-    const totalSize  = thermalMetadata.total_bytes;
-    let received     = 0;
-    const allBytes   = new Uint8Array(totalSize);
-    const barFill    = document.getElementById('loading-bar-fill');
+    // Binary — avec progression
+    const binResp   = await fetch('thermal_anomalies.bin');
+    const reader    = binResp.body.getReader();
+    const totalSize = thermalMetadata.total_bytes;
+    let received    = 0;
+    const chunks    = [];
+    const barFill   = document.getElementById('loading-bar-fill');
 
-    for (let i = 0; i < chunkFiles.length; i++) {
-      const resp   = await fetch(chunkFiles[i]);
-      const reader = resp.body.getReader();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        allBytes.set(value, received);
-        received += value.length;
-        const pct = Math.round(received / totalSize * 100);
-        if (progressEl) progressEl.textContent = `Spread: ${pct}%`;
-        if (barFill) barFill.style.width = pct + '%';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      const pct = Math.round(received / totalSize * 100);
+      if (progressEl) {
+        progressEl.textContent = `Spread: ${pct}%`;
       }
+      if (barFill) barFill.style.width = pct + '%';
     }
 
+    // Assemblage
+    const allBytes = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      allBytes.set(chunk, offset);
+      offset += chunk.length;
+    }
     thermalData = new Float32Array(allBytes.buffer);
 
     console.log(`[Infected Globe] Donnees thermiques chargees : ${totalMonths} mois, ${thermalData.length} floats`);
@@ -223,6 +228,7 @@ async function loadThermalData() {
 
     // Masquer loading, afficher la modale narrative
     if (loadingEl) loadingEl.style.display = 'none';
+    videoPeaks = computeVideoPeaks(); initVideoPanel(); // VIDEO MODE — retirer avec le bloc video
     showIntroModal();
 
   } catch (err) {
@@ -329,7 +335,8 @@ function setTimeSlice(monthIndex) {
 // ─── ANOMALIE GLOBALE MOYENNE ───────────────────────────────────────────────
 
 function updateGlobalMean(meanC) {
-  const el    = document.getElementById('global-mean-value');
+  const el      = document.getElementById('global-mean-value');
+  const yearEl  = document.getElementById('year-big');
   if (!el) return;
 
   const sign  = meanC >= 0 ? '+' : '';
@@ -337,14 +344,20 @@ function updateGlobalMean(meanC) {
 
   // Couleur dynamique alignée sur les seuils du shader
   el.className = '';
+  if (yearEl) yearEl.className = '';
+
   if (meanC <= -0.5) {
     el.classList.add('mean-frost');
+    if (yearEl) yearEl.classList.add('year-frost');
   } else if (meanC >= 3.5) {
     el.classList.add('mean-necrosis');
+    if (yearEl) yearEl.classList.add('year-necrosis');
   } else if (meanC >= 1.5) {
     el.classList.add('mean-infection');
+    if (yearEl) yearEl.classList.add('year-infection');
   } else if (meanC >= 0.5) {
     el.classList.add('mean-fever');
+    if (yearEl) yearEl.classList.add('year-fever');
   }
   // Entre -0.5 et +0.5 : neutre (blanc atténué, pas de classe)
 }
@@ -365,10 +378,12 @@ function monthIndexToDate(idx) {
 }
 
 function updateDateDisplay(idx) {
-  const dateEl = document.getElementById('date-display');
+  const dateEl   = document.getElementById('date-display');
+  const yearBigEl = document.getElementById('year-big');
   if (!dateEl) return;
   const { year, label } = monthIndexToDate(idx);
   dateEl.textContent = label;
+  if (yearBigEl) yearBigEl.textContent = year;
   updateMilestone(year);
 }
 
@@ -427,19 +442,22 @@ function showIntroModal() {
 
   if (modal) modal.classList.add('visible');
 
-  const legendEl = document.getElementById('clinical-legend');
-
-  const meanEl  = document.getElementById('global-mean');
-  const scaleEl = document.getElementById('temp-scale');
+  const legendEl  = document.getElementById('clinical-legend');
+  const meanEl    = document.getElementById('global-mean');
+  const scaleEl   = document.getElementById('temp-scale');
+  const yearBigEl = document.getElementById('year-big');
 
   const dismiss = () => {
     if (modal) modal.classList.remove('visible');
     // Reveal HUD + legend with fade
-    if (titleEl)  titleEl.style.opacity  = '1';
-    if (labelEl)  labelEl.style.opacity  = '1';
-    if (legendEl) legendEl.style.opacity = '1';
-    if (meanEl)   meanEl.style.opacity   = '1';
-    if (scaleEl)  scaleEl.style.opacity  = '1';
+    if (titleEl)   titleEl.style.opacity   = '1';
+    if (labelEl)   labelEl.style.opacity   = '1';
+    if (legendEl)  legendEl.style.opacity  = '1';
+    if (meanEl)    meanEl.style.opacity    = '1';
+    if (scaleEl)   scaleEl.style.opacity   = '1';
+    if (yearBigEl) yearBigEl.style.opacity = '1';
+    const videoPanelEl = document.getElementById('video-panel');
+    if (videoPanelEl) videoPanelEl.style.opacity = '1'; // VIDEO MODE — retirer avec le bloc video
     // Enable controls
     enableTimeControls();
   };
@@ -629,6 +647,8 @@ function animate(now) {
     if (slider) slider.value = Math.round(targetTimeIndex);
   }
 
+  videoTick(dt); // VIDEO MODE — retirer avec le bloc video
+
   // Inertie temporelle (CLAUDE.md : currentTime += (targetTime - currentTime) * 0.05)
   if (thermalData) {
     smoothTimeIndex += (targetTimeIndex - smoothTimeIndex) * 0.08;
@@ -640,5 +660,132 @@ function animate(now) {
 
 // ─── INIT ───────────────────────────────────────────────────────────────────
 
+// VIDEO MODE — déclarations anticipées (retirer avec le bloc video)
+const VIDEO_PAUSE_MS = 3500, VIDEO_MOTION_S = 16;
+let videoPeaks = [], videoState = 'idle', videoCurStop = 0, videoPauseEnd = 0, videoSpeedMonthsPerS = 0;
+// ── fin déclarations VIDEO MODE ──
+
 animate(performance.now());
 loadThermalData();
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VIDEO RECORDING MODE — retirer après tournage
+//
+// Pour supprimer entièrement :
+//   1. Effacer ce bloc JS (de cette ligne jusqu'à "FIN VIDEO RECORDING MODE")
+//   2. Effacer les 3 lignes marquées "// VIDEO MODE" dans le code ci-dessus :
+//        • videoTick(dt)           dans animate()
+//        • videoPeaks + initVideoPanel() dans loadThermalData()
+//        • videoPanelEl opacity    dans showIntroModal dismiss()
+//   3. Effacer #video-panel dans infecte.html + son bloc CSS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// (VIDEO_PAUSE_MS, VIDEO_MOTION_S, videoPeaks, videoState, etc.
+//  sont déclarés avant animate() — voir section INIT ci-dessus)
+
+// Calcule le mois avec la plus haute anomalie moyenne dans chacun des 4 quarts
+// Appelé une fois après le chargement des données (~100-300ms selon machine)
+function computeVideoPeaks() {
+  if (!thermalData) return [];
+  const segSize = Math.floor(totalMonths / 4);
+  const peaks   = [];
+  for (let seg = 0; seg < 4; seg++) {
+    const start  = seg * segSize;
+    const end    = seg === 3 ? totalMonths : start + segSize;
+    let bestIdx  = start;
+    let bestMean = -Infinity;
+    for (let m = start; m < end; m++) {
+      const off = m * SLICE_SIZE;
+      let sum = 0, cnt = 0;
+      for (let i = 0; i < SLICE_SIZE; i++) {
+        const v = thermalData[off + i];
+        if (v > -900.0) { sum += v; cnt++; }
+      }
+      if (cnt > 0) {
+        const mean = sum / cnt;
+        if (mean > bestMean) { bestMean = mean; bestIdx = m; }
+      }
+    }
+    peaks.push(bestIdx);
+  }
+  console.log('[VIDEO MODE] Pics calculés :', peaks.map(idx => {
+    const { label } = monthIndexToDate(idx);
+    return label;
+  }));
+  return peaks;
+}
+
+function videoStartPlayback() {
+  if (!thermalData || !videoPeaks.length) return;
+  isPlaying            = false;         // désactive le playback normal
+  const playBtn        = document.getElementById('play-btn');
+  if (playBtn) playBtn.textContent = '▶';
+  videoState           = 'playing';
+  videoCurStop         = 0;
+  targetTimeIndex      = 0;
+  smoothTimeIndex      = 0;
+  videoSpeedMonthsPerS = totalMonths / VIDEO_MOTION_S;
+  const slider = document.getElementById('time-slider');
+  if (slider) slider.value = 0;
+  document.querySelectorAll('.vstop').forEach(el => { el.className = 'vstop'; });
+  const btn = document.getElementById('video-play-btn');
+  if (btn) btn.textContent = '⏸';
+}
+
+function videoStopPlayback() {
+  videoState = 'idle';
+  const btn = document.getElementById('video-play-btn');
+  if (btn) btn.textContent = '▶';
+}
+
+// Appelé à chaque frame depuis animate() via le hook VIDEO MODE
+function videoTick(dt) {
+  if (videoState === 'idle' || videoState === 'done' || !thermalData) return;
+
+  if (videoState === 'playing') {
+    const peak = videoPeaks[videoCurStop];
+    targetTimeIndex += videoSpeedMonthsPerS * dt;
+
+    if (targetTimeIndex >= peak) {
+      targetTimeIndex = peak;
+      videoState      = 'paused';
+      videoPauseEnd   = performance.now() + VIDEO_PAUSE_MS;
+      const dot = document.querySelector(`.vstop[data-idx="${videoCurStop}"]`);
+      if (dot) dot.classList.add('active');
+    }
+
+    const slider = document.getElementById('time-slider');
+    if (slider) slider.value = Math.round(targetTimeIndex);
+
+  } else if (videoState === 'paused') {
+    if (performance.now() >= videoPauseEnd) {
+      const dot = document.querySelector(`.vstop[data-idx="${videoCurStop}"]`);
+      if (dot) { dot.classList.remove('active'); dot.classList.add('reached'); }
+      videoCurStop++;
+      if (videoCurStop >= 4) {
+        videoState = 'done';
+        const btn = document.getElementById('video-play-btn');
+        if (btn) btn.textContent = '↩';  // indique que c'est terminé / rejouable
+      } else {
+        videoState = 'playing';
+      }
+    }
+  }
+}
+
+function initVideoPanel() {
+  const btn = document.getElementById('video-play-btn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    if (videoState === 'idle' || videoState === 'done') {
+      videoStartPlayback();
+    } else {
+      videoStopPlayback();
+    }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FIN VIDEO RECORDING MODE
+// ═══════════════════════════════════════════════════════════════════════════════
