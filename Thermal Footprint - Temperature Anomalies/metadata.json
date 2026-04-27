@@ -24,13 +24,23 @@
     -179.0,
     179.0
   ],
-  "anomaly_stats": {
-    "min": -999.0,
-    "max": 15.949999809265137,
-    "mean": -108.8892
+  "encoding": "Uint8",
+  "quantization": {
+    "sentinel": 255,
+    "valid_range_uint8": [
+      0,
+      254
+    ],
+    "real_min": -16.209999084472656,
+    "real_max": 15.949999809265137,
+    "formula": "val_celsius = (uint8 / 254.0) * (real_max - real_min) + real_min"
   },
-  "encoding": "Float32Array",
-  "byte_order": "little-endian",
-  "total_floats": 28414800,
-  "total_bytes": 113659200
+  "anomaly_stats": {
+    "valid_cells": 25313990,
+    "sentinel_cells": 3100810,
+    "real_min_celsius": -16.209999084472656,
+    "real_max_celsius": 15.949999809265137
+  },
+  "total_values": 28414800,
+  "total_bytes": 28414800
 }

@@ -133,9 +133,17 @@ Object.entries(textureMap).forEach(([uniformName, filename]) => {
 
 // ─── THERMAL DATA LOADING ───────────────────────────────────────────────────
 
-let thermalData     = null;  // Float32Array brut (28M floats)
+let thermalData     = null;  // Uint8Array (28M bytes — encodage quantifié)
+let thermalRealMin  = 0;     // °C réel min (depuis metadata.quantization)
+let thermalRealMax  = 0;     // °C réel max (depuis metadata.quantization)
 let thermalMetadata = null;
 let totalMonths     = 0;
+
+// Décodage Uint8 → °C réel
+// Sentinel = 255 (pas de données), valides = [0, 254]
+function decodeThermal(u8) {
+  return (u8 / 254.0) * (thermalRealMax - thermalRealMin) + thermalRealMin;
+}
 
 // Texture RGBA Uint8 reutilisee a chaque frame
 const thermalRGBA    = new Uint8Array(SLICE_SIZE * 4);
@@ -185,34 +193,41 @@ async function loadThermalData() {
     const metaResp = await fetch('metadata.json');
     thermalMetadata = await metaResp.json();
     totalMonths     = thermalMetadata.time_range.total_months;
+    thermalRealMin  = thermalMetadata.quantization.real_min;
+    thermalRealMax  = thermalMetadata.quantization.real_max;
 
     if (progressEl) progressEl.textContent = 'Acquiring thermal records...';
 
-    // Binary — split into chunks for GitHub hosting (100MB limit per file)
-    const chunkFiles = ['thermal_chunk_aa', 'thermal_chunk_ab', 'thermal_chunk_ac'];
-    const totalSize  = thermalMetadata.total_bytes;
-    let received     = 0;
-    const allBytes   = new Uint8Array(totalSize);
-    const barFill    = document.getElementById('loading-bar-fill');
+    // Binary — avec progression
+    const binResp   = await fetch('thermal_anomalies.bin');
+    const reader    = binResp.body.getReader();
+    const totalSize = thermalMetadata.total_bytes;
+    let received    = 0;
+    const chunks    = [];
+    const barFill   = document.getElementById('loading-bar-fill');
 
-    for (let i = 0; i < chunkFiles.length; i++) {
-      const resp   = await fetch(chunkFiles[i]);
-      const reader = resp.body.getReader();
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        allBytes.set(value, received);
-        received += value.length;
-        const pct = Math.round(received / totalSize * 100);
-        if (progressEl) progressEl.textContent = `Spread: ${pct}%`;
-        if (barFill) barFill.style.width = pct + '%';
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+      received += value.length;
+      const pct = Math.round(received / totalSize * 100);
+      if (progressEl) {
+        progressEl.textContent = `Spread: ${pct}%`;
       }
+      if (barFill) barFill.style.width = pct + '%';
     }
 
-    thermalData = new Float32Array(allBytes.buffer);
+    // Assemblage — conservé en Uint8Array (encodage quantifié, sentinel = 255)
+    const allBytes = new Uint8Array(received);
+    let offset = 0;
+    for (const chunk of chunks) {
+      allBytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    thermalData = allBytes;
 
-    console.log(`[Infected Globe] Donnees thermiques chargees : ${totalMonths} mois, ${thermalData.length} floats`);
+    console.log(`[Infected Globe] Donnees thermiques chargees : ${totalMonths} mois, ${thermalData.length} octets Uint8`);
 
     // Charger le premier mois (debut de l'histoire, pas la fin)
     setTimeSlice(0);
@@ -246,17 +261,18 @@ function setTimeSlice(monthIndex) {
   const sliceOffset = monthIndex * SLICE_SIZE;
 
   for (let i = 0; i < SLICE_SIZE; i++) {
-    const val = thermalData[sliceOffset + i];
+    const u8 = thermalData[sliceOffset + i];
     const idx = i * 4;
 
-    if (val < -900.0) {
+    if (u8 === 255) {
       // Sentinel : pas de donnees
       thermalRGBA[idx]     = 0;
       thermalRGBA[idx + 1] = 0;
       thermalRGBA[idx + 2] = 0;
       thermalRGBA[idx + 3] = 0;
     } else {
-      // Normalisation vers [0, 255]
+      // Décodage Uint8 → °C, puis normalisation vers [0, 255] pour affichage
+      const val = decodeThermal(u8);
       const normalized = (val - DISPLAY_MIN) / DISPLAY_RANGE;
       thermalRGBA[idx]     = Math.max(0, Math.min(255, Math.round(normalized * 255)));
       thermalRGBA[idx + 1] = 0;
@@ -271,9 +287,9 @@ function setTimeSlice(monthIndex) {
   let sum = 0;
   let count = 0;
   for (let i = 0; i < SLICE_SIZE; i++) {
-    const val = thermalData[sliceOffset + i];
-    if (val > -900.0) {
-      sum += val;
+    const u8 = thermalData[sliceOffset + i];
+    if (u8 !== 255) {
+      sum += decodeThermal(u8);
       count++;
     }
   }
@@ -284,8 +300,10 @@ function setTimeSlice(monthIndex) {
   // ─── Extraction des hotspots pour les pustules lumineuses ──────
   const hotspots = [];
   for (let i = 0; i < SLICE_SIZE; i++) {
-    const val = thermalData[sliceOffset + i];
-    if (val > HOTSPOT_THRESHOLD && val < 900.0) {
+    const u8 = thermalData[sliceOffset + i];
+    if (u8 === 255) continue;
+    const val = decodeThermal(u8);
+    if (val > HOTSPOT_THRESHOLD) {
       const col = i % THERMAL_WIDTH;
       const row = Math.floor(i / THERMAL_WIDTH);
       hotspots.push({

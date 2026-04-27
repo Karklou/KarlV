@@ -638,6 +638,13 @@
     <div id="date-display">---</div>
   </div>
 
+  <!-- Service Worker — cache thermal_anomalies.bin après le 1er chargement -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+  </script>
+
   <!-- Three.js r128 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 

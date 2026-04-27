@@ -11,8 +11,6 @@
 *.nc
 *.nc4
 
-# Large binary data (hosted externally via GitHub Releases)
-thermal_anomalies.bin
 
 # Reference/template projects (source material, not portfolio content)
 Thermal Footprint - Temperature Anomalies/realtime-planet-shader-main/
